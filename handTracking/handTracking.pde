@@ -2,7 +2,8 @@ import org.openkinect.*;
 import org.openkinect.processing.*;
 import processing.serial.*;
 import processing.video.*;
-
+import java.awt.Robot;
+import java.awt.*;
 
 Kinect kinect;
 DepthImage imgd;
@@ -12,6 +13,9 @@ boolean rgb = false;
 
 Serial myPort;       
 int intence;
+
+Robot robby;
+
 void setup() {
   size(640,520);
   myPort = new Serial(this, Serial.list()[0], 9600);
@@ -19,17 +23,28 @@ void setup() {
 
   noStroke();
   smooth();
-imgd = new DepthImage(this);
+  imgd = new DepthImage(this);
 
 
   kinect = new Kinect(this);
   kinect.start();
   kinect.enableDepth(depth);
   kinect.enableRGB(rgb);
+  
+  
+  try
+  {
+    robby = new Robot();
+  }
+  catch (AWTException e)
+  {
+    println("Robot class not supported by your system!");
+    exit();
+  }
 }
 
 void draw() {
- // background(0);
+  // background(0);
   image(kinect.getRGBImage(),0,0);
   //image(kinect.getDepthImage(),640,0);
   fill(255);
@@ -37,43 +52,47 @@ void draw() {
   text("DEPTH FPS: " + kinect.getDepthFPS(),640,495);
   text("Press 'd' to enable/disable depth    Press 'r' to enable/disable rgb image    Framerate: " + frameRate,10,515);
   int brightestX = 0; // X-coordinate of the brightest video pixel
-    int brightestY = 0; // Y-coordinate of the brightest video pixel
-    float brightestValue = 0; // Brightness of the brightest video pixel
-    // Search for the brightest pixel: For each row of pixels in the video image and
-    // for each pixel in the yth row, compute each pixel's index in the video
-   
-    PImage video = kinect.getDepthImage();
-    
-    image(video, 0, 0);
-    
-    int index = 0;
-    for (int y = 0; y < video.height; y++) {
-      for (int x = 0; x < video.width; x++) {
-        // Get the color stored in the pixel
-        int pixelValue = video.pixels[index];
-        // Determine the brightness of the pixel
-        float pixelBrightness = brightness(pixelValue);
-        // If that value is brighter than any previous, then store the
-        // brightness of that pixel, as well as its (x,y) location
-        if (pixelBrightness > brightestValue) {
-          brightestValue = pixelBrightness;
-          brightestY = y;
-          brightestX = x;
-        }
-        index++;
-      }
-    }
- 
-    // Draw a large, yellow circle at the brightest pixel
-    fill(255, 204, 0, 128);
-    ellipse(brightestX, brightestY, 20, 20);
-    
-    println(brightestX);
-    if (brightestX > 400){
-      myPort.write(65);
-    }
+  int brightestY = 0; // Y-coordinate of the brightest video pixel
+  float brightestValue = 0; // Brightness of the brightest video pixel
+  // Search for the brightest pixel: For each row of pixels in the video image and
+  // for each pixel in the yth row, compute each pixel's index in the video
 
-}
+  PImage video = kinect.getDepthImage();
+ pushMatrix();
+
+  //flip across x axis
+  scale(-1,1);
+
+  //The x position is negative because we flipped
+  image(video, 0, 0);
+
+  //restore previous translation,etc
+  popMatrix(); 
+  image(video, 0, 0);
+
+  int index = 0;
+  for (int y = 0; y < video.height; y++) {
+    for (int x = 0; x < video.width; x++) {
+      // Get the color stored in the pixel
+      int pixelValue = video.pixels[index];
+      // Determine the brightness of the pixel
+      float pixelBrightness = brightness(pixelValue);
+      // If that value is brighter than any previous, then store the
+      // brightness of that pixel, as well as its (x,y) location
+      if (pixelBrightness > brightestValue) {
+        brightestValue = pixelBrightness;
+        brightestY = y;
+        brightestX = x;
+      }
+      index++;
+    }
+  }
+
+  // Draw a large, yellow circle at the brightest pixel
+  fill(255, 204, 0, 128);
+  ellipse(brightestX, brightestY, 20, 20);
+  
+    // robby.mouseMove(brightestX,brightestY);  //ENABLE FOR MOUSE INTEGRATION
 
 void keyPressed() {
   if (key == 'd') {
@@ -90,5 +109,4 @@ void stop() {
   kinect.quit();
   super.stop();
 }
-
 
